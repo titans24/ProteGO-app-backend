@@ -52,7 +52,7 @@ def register(request):
     send_sms = request_data.get("send_sms", True)
     if STAGE == "DEVELOPMENT" and not send_sms:
         response["code"] = code
-    else:
+    elif _should_send_sms(msisdn):
         _publish_to_send_register_sms_topic(msisdn, registration_id, code)
 
     return jsonify(response)
@@ -145,8 +145,7 @@ def _get_pending_registration_code(msisdn: str) -> Optional[str]:
 def _should_send_sms(msisdn: str) -> bool:
     registration_entities = _get_registration_entities("msisdn", msisdn, timedelta(minutes=1))
 
-    if len(registration_entities) > 0:
-        logging.warning(f"_should_send_sms: resend sms request for msisdn: {msisdn}")
+    if len(registration_entities) > 1:
         return False
 
     return True
