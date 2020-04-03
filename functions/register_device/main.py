@@ -36,6 +36,7 @@ def register_device(request):
 
     request_data = request.get_json()
     msisdn = request_data["msisdn"]
+    lang = request_data["lang"]
     ip = request.headers.get('X-Forwarded-For')
 
     code = _get_pending_registration_code(msisdn) or "".join(random.choice(CODE_CHARACTERS) for _ in range(6))
@@ -53,7 +54,7 @@ def register_device(request):
     if STAGE == "DEVELOPMENT" and not send_sms:
         response["code"] = code
     else:
-        _publish_to_send_register_sms_topic(msisdn, registration_id, code)
+        _publish_to_send_register_sms_topic(msisdn, registration_id, code, lang)
 
     return jsonify(response)
 
@@ -185,11 +186,12 @@ def _save_to_datastore(code: str, msisdn: str, date: datetime, registration_id: 
     datastore_client.put(registration)
 
 
-def _publish_to_send_register_sms_topic(msisdn: str, registration_id: str, code: str):
+def _publish_to_send_register_sms_topic(msisdn: str, registration_id: str, code: str, lang: str):
     topic_path = publisher.topic_path(PROJECT_ID, PUBSUB_SEND_REGISTER_SMS_TOPIC)
     data = {
         "registration_id": registration_id,
         "msisdn": msisdn,
-        "code": code
+        "code": code,
+        "lang": lang
     }
     publisher.publish(topic_path, json.dumps(data).encode("utf-8"))
